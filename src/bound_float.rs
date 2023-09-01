@@ -91,6 +91,14 @@ impl std::fmt::Display for Probability {
 }
 
 // wrapper struct for f32 ensuring value remains between -1 and 1.
+// a bit dumb, but looks like importing anything with format f32 will just straight up be guaranteed this...
+// fml though, don't do any maths with this shit lmao either allow maths operations of itself (like +=) or easy wrapping/unwrapping
+// refactor this properly instead of doing what is currently here which is dirty, and unless the compiler is a gigawizard, slow af
+// actually, see what these ops compile to before making judgements... but ye is probably garbage.
+//
+// might be a good idea to remove the type altogether, have it as an alias for f32 and have a conversion function for &[f32] that spits out
+// a scaled &[f32] that is in the desired range. This is much weaker ofc but is probably actually good performance compared to this shit.
+// ofc need to test, but still...
 #[derive(Clone, Debug)]
 pub struct Amplitude32(f32);
 
@@ -116,6 +124,10 @@ impl Amplitude32 {
 
     pub fn as_f32(&self) -> f32 {
         self.0
+    }
+
+    pub fn max(self, other: Amplitude32) -> Amplitude32 {
+        Amplitude32::new(f32::max(self.0, other.0))
     }
 
     /**
