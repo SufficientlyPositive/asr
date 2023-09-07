@@ -1,13 +1,17 @@
 [package]
 name = "asr-rust"
+authors = ["SufficientlyPositive"]
+description = "A first time rust user's attempt to build an ASR system, lots of fun was had, not the best code quality."
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "4.4.1"
+clap = { version = "4.4.1", features = ["derive", "string"] }
 cpal = "0.15.2"
+log = "0.4"
+pretty_env_logger = "0.4"
 anyhow = "1.0.75"
 ringbuf = "0.3.3"
-tokio = { version = "1.32.0", features = ["full"] }
+# futures = { version = "0.3", features = ["thread-pool"]}
