@@ -37,9 +37,12 @@ impl ThreadPool {
     }
 
     // might need execute to push something to a new channel
-    pub fn execute(&self, job: Job) {
+    pub fn execute<F>(&self, f: F)
+    where
+        F: FnOnce() + Send + 'static
+    {
         // let job = Box::new(job);
-        match self.sender.as_ref().unwrap().send(Message::NewJob(job)) {
+        match self.sender.as_ref().unwrap().send(Message::NewJob(Box::new(f))) {
             Ok(_) => {},
             Err(e) => {panic!("An error occured while queuing a job to workers {}.", e)}
         };

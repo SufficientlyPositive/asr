@@ -1,39 +1,44 @@
 use std::iter::zip;
+use anyhow::{Result, anyhow};
 
 use super::{processing_api::PhonemeRetriever, model::Model};
 use crate::bounded_float::{Amplitude32, Probability64};
 
 // consider removing phonemes entirely? like what's the point??
 pub struct ModelFrontend<'a> {
-    phonemes: &'a Vec<&'a str>,
+    phonemes: Option<&'a [String]>,
     model: Model
 }
 
 // if adding multithreading maybe make this async and await the result of process?
 impl<'a> PhonemeRetriever<'a> for ModelFrontend<'a> {
-    fn find_likelihood(&self, sample: Vec<Amplitude32>) -> Result<Vec<(&'a &'a str, Probability64)>, String> {
-        self.model.process(sample)?
+    fn find_likelihood(&self, sample: Vec<Amplitude32>) -> Result<Vec<(&'a str, Probability64)>> {
+        self.model.process(sample, self.phonemes)
     }
 }
 
 impl<'a> ModelFrontend<'a> {
-    pub fn new(phonemes: &'a Vec<&'a str>, model: Model) -> Self {
-        ModelFrontend { phonemes, model }
+    pub fn new(model: Model) -> Self {
+        ModelFrontend { phonemes: None, model }
+    }
+
+    pub fn set_id_phonemes(&mut self, phonemes: &'a [String]) {
+        self.phonemes = Some(phonemes);
     }
 }
 
 pub struct Dummy<'a> {
-    phonemes: &'a Vec<&'a str>,
+    phonemes: &'a [String],
     sample_size: usize, 
     sample_meta: &'a cpal::StreamConfig
 }
 
 impl<'a> PhonemeRetriever<'a> for Dummy<'a> {
-    fn find_likelihood(&self, sample: Vec<Amplitude32>) -> Result<Vec<(&'a &'a str, Probability64)>, String> {
-        if sample.is_empty() { return Result::Err(String::from("Sample passed to find_likelihood is empty.")) }
-        if sample.len() != self.sample_size { return Result::Err(format!("Sample passed to Dummy was expected to have size {}, but instead had size {}.", self.sample_size, sample.len())) }
+    fn find_likelihood(&self, sample: Vec<Amplitude32>) -> Result<Vec<(&'a str, Probability64)>> {
+        if sample.is_empty() { return Err(anyhow!("Sample passed to find_likelihood is empty.")) }
+        if sample.len() != self.sample_size { return Err(anyhow!("Sample passed to Dummy was expected to have size {}, but instead had size {}.", self.sample_size, sample.len())) }
 
-        let mut likelihood: Vec<(&&str, Probability64)> = zip(self.phonemes, vec![0.0; self.phonemes.len()]).collect();
+        let mut likelihood: Vec<(&'a str, Probability64)> = zip(self.phonemes.iter().map(String::as_str), vec![0.0; self.phonemes.len()]).collect();
 
         let max = sample.iter().cloned().fold(f32::NEG_INFINITY, Amplitude32::max); // if so inclined to make sample not in range (-1, 1), divide by this instead
         let first_key = ((max + 1.0) * self.phonemes.len() as f32 / 2.00001).floor() as usize;
@@ -54,6 +59,6 @@ impl<'a> PhonemeRetriever<'a> for Dummy<'a> {
 }
 
 // for testing purposes, generates a dummy process that returns based on the values of the first and last sample.
-pub fn new_dummy<'a>(phonemes: &'a Vec<&'a str>, sample_size: usize, sample_meta: &'a cpal::StreamConfig) -> Dummy<'a> {
+pub fn new_dummy<'a>(phonemes: &'a [String], sample_size: usize, sample_meta: &'a cpal::StreamConfig) -> Dummy<'a> {
     Dummy { phonemes, sample_size, sample_meta }
 }

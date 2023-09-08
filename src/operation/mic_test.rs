@@ -20,8 +20,9 @@ pub fn main(args: CLArgs) -> Result<()> {
 
     let (input_fn, mut output_fn) = mic_stream_util::build_buffer_functions(model_sample_size, model_sample_rate, input_device_config.sample_rate.0, input_device_config.channels)?;
 
-    let phonemes: Vec<&str> = vec!["m", "n", "ŋ", "p", "b", "t"];
-    let dummy = model_frontend::new_dummy(&phonemes, model_sample_size as usize, &input_device_config);
+    let phonemes = ["m", "n", "ŋ", "p", "b", "t"];
+    let binding = phonemes.iter().map(| &f | String::from(f)).collect::<Vec<_>>();
+    let dummy = model_frontend::new_dummy(binding.as_slice(), model_sample_size as usize, &input_device_config);
 
     let input_stream = input_device.build_input_stream(&input_device_config, input_fn, mic_stream_util::err_fn, None)?;
     input_stream.play()?;
@@ -39,7 +40,6 @@ pub fn main(args: CLArgs) -> Result<()> {
 
             while start.elapsed() < std::time::Duration::from_millis(5000) {
 
-                // this doesn't seem to go fast enough in dev build to sample 50 times a second!
                 match output_fn(model_sample_size as usize) {
                     Ok(sample) => sender.send(sample).unwrap(),
                     Err(a) => error!("{}", a),
@@ -47,7 +47,6 @@ pub fn main(args: CLArgs) -> Result<()> {
 
                 std::thread::sleep(next_block - std::time::Instant::now());
                 next_block += interval;
-                // if next_block < std::time::Instant::now() { error!("Sampling is taking too long to be at the given rate!"); return }
             }
         });
 
