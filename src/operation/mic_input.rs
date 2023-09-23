@@ -22,15 +22,13 @@ pub fn main(args: CLArgs) -> Result<()> {
     let phonemes: Vec<String> = parsing::parse_phoneme_file(args.phoneme_path)?;
     let mut model = parsing::parse_model_file(args.model_path)?;
     model.set_id_phonemes(phonemes.as_slice());
-    // let phonemes = ["m", "n", "ŋ", "p", "b", "t"];
-    // let binding = phonemes.iter().map(| &f | String::from(f)).collect::<Vec<_>>();
-    // let model = new_dummy(binding.as_slice(), model_sample_size as usize, &input_device_config);
+
     let model_ref = &model;
 
     let input_stream = input_device.build_input_stream(&input_device_config, input_fn, mic_stream_util::err_fn, None)?;
 
     // return explicitly defined here for clarity
-    // currently utilising 5 threads just for this... whyyyyyyyyyy
+    // currently utilising 5 threads just for this...
     return std::thread::scope(|s| -> Result<()> {
         let (sender, retriever) = std::sync::mpsc::channel();
         let sender = Arc::new(Mutex::new(sender));
@@ -39,6 +37,9 @@ pub fn main(args: CLArgs) -> Result<()> {
         s.spawn(move || {
             let interval = std::time::Duration::from_secs_f32(1.0 / model_sample_rate as f32);
             let mut next_block = std::time::Instant::now() + interval;
+
+            // tbh could probably dip into unsafe here, since this is only being set in one thread and read in others.
+            // alternatively look for the "Arc only" answer proposed below.
             let cancel_loop = Arc::new(Mutex::new(false));
 
             // it's probably better if futures are used here, that way we can always get a correct ordering of the futures

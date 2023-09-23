@@ -2,6 +2,7 @@ use  anyhow::Result;
 
 use crate::bounded_float::{Amplitude32, Probability64};
 
+#[derive(Debug)]
 pub struct Model;
 
 impl Model {

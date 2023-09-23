@@ -5,6 +5,7 @@ use super::{processing_api::PhonemeRetriever, model::Model};
 use crate::bounded_float::{Amplitude32, Probability64};
 
 // consider removing phonemes entirely? like what's the point??
+#[derive(Debug)]
 pub struct ModelFrontend<'a> {
     phonemes: Option<&'a [String]>,
     model: Model
